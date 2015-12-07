@@ -472,7 +472,6 @@ class OVXEmbedderHandler(BaseHTTPRequestHandler):
                 srcDpid = hexToLong(link['src']['dpid'])
                 # Type conversions needed because OVX JSON output is stringified
                 srcPort = int(link['src']['port'])
-                log.info( srcPort )
                 (srcVDpid, srcVPort) = client.createPort(tenantId, srcDpid, srcPort)
                  
                 dstDpid = hexToLong(link['dst']['dpid'])
@@ -563,7 +562,7 @@ class OVXEmbedderHandler(BaseHTTPRequestHandler):
             err = self._buildError(ERROR_CODE.PARSE_ERROR, msg)
             result = self._buildResponse(None, error=err)
         # Check if JSONRPC 2.0 compliant (correct version and json_id given)
-        data.get('id', None)
+        json_id = data.get('id', None)
         # Setup method to call
         try:
             methodName = "_exec_" + data.get('method')
