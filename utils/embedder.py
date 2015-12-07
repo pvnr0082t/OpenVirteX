@@ -302,6 +302,18 @@ class OVXClient():
             e.rollback = True
             e.tenantId = tenantId
             raise
+
+    def disconnectHost(self, tenantId, hostId):
+        req = {'tenantId': tenantId, 'hostId': hostId}
+        try:
+            ret = self._connect("disconnectHost", self.tenant_url, data=req)
+            if ret:
+                log.info("Host with hostId %s disconnected" % hostId)
+        except OVXException as e:
+            e.rollback = True
+            e.tenantId = tenantId
+            raise
+
             
     def connectRoute(self, tenantId, switchId, srcPort, dstPort, path):
         req = {'tenantId': tenantId, 'vdpid': switchId, 'srcPort': srcPort, 'dstPort': dstPort, 'path': path}
@@ -460,6 +472,7 @@ class OVXEmbedderHandler(BaseHTTPRequestHandler):
                 srcDpid = hexToLong(link['src']['dpid'])
                 # Type conversions needed because OVX JSON output is stringified
                 srcPort = int(link['src']['port'])
+                log.info( srcPort )
                 (srcVDpid, srcVPort) = client.createPort(tenantId, srcDpid, srcPort)
                  
                 dstDpid = hexToLong(link['dst']['dpid'])
@@ -477,6 +490,19 @@ class OVXEmbedderHandler(BaseHTTPRequestHandler):
         client.startNetwork(tenantId)
 
         return tenantId
+    
+    def _exec_disconnectHost(self, json_id, params):
+        try:
+            client = self.server.client    
+            tenantId = params.get('tenantId')
+            hostId = params.get('hostId')
+            client.disconnectHost(int(tenantId), int(hostId))
+            response = self._buildResponse(json_id, result={'tenantId':tenantId , 'hostId': hostId})
+        except EmbedderException as e:
+            log.error(e)
+            err = self._buildError(e.code, e.msg)
+            response = self._buildResponse(json_id, error=err)
+        return response
 
     def _exec_createNetwork(self, json_id, params):
         """Handler for automated network creation"""
@@ -537,7 +563,7 @@ class OVXEmbedderHandler(BaseHTTPRequestHandler):
             err = self._buildError(ERROR_CODE.PARSE_ERROR, msg)
             result = self._buildResponse(None, error=err)
         # Check if JSONRPC 2.0 compliant (correct version and json_id given)
-        json_id = data.get('id', None)
+        data.get('id', None)
         # Setup method to call
         try:
             methodName = "_exec_" + data.get('method')
